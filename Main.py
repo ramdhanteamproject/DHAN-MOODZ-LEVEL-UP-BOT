@@ -42,14 +42,14 @@ DEVICES_FILE = "devices.json"  # 🔥 NEW: Persistent device storage
 TOKEN_CACHE_TTL = 1200
 
 # 🔥 Match control
-START_MATCH_INTERVAL = 6.0
-NEW_MATCH_DELAY = 10.0   
+START_MATCH_INTERVAL = 3.0
+NEW_MATCH_DELAY = 3.0   
 MAX_MATCH_DURATION = 700
-MATCH_IDLE_TIMEOUT = 25.0
+MATCH_IDLE_TIMEOUT = 8.0
 PRIORITY_REGIONS = ["BD","IND", "SG", "TH", "PH", "VN", "MY", "ID", "HK", "TW"]
 
 # 🔥 Cache invalidation thresholds
-MAX_CONSECUTIVE_PARSE_FAILURES = 15.0     
+MAX_CONSECUTIVE_PARSE_FAILURES = 5.0     
 NON_MATCH_RECONNECT_DELAY = 1.0       
 
 FALLBACK_UID = ""
@@ -2118,19 +2118,12 @@ async def main():
     async def on_account_added_handler(data):
         if "token" in data and data["token"]:
             t = str(data["token"]).strip()
-            key = t[:10]
-            if key in bot_state.account_workers and not bot_state.account_workers[key].done():
-                return
             task = asyncio.create_task(account_loop_token(t))
-            task.add_done_callback(lambda _: bot_state.account_workers.pop(key, None))
-            bot_state.account_workers[key] = task
+            bot_state.account_workers[t[:10]] = task
         elif "uid" in data and "password" in data:
             u = str(data["uid"]).strip()
             p = str(data["password"]).strip()
-            if u in bot_state.account_workers and not bot_state.account_workers[u].done():
-                return
             task = asyncio.create_task(account_loop_guest(u, p))
-            task.add_done_callback(lambda _: bot_state.account_workers.pop(u, None))
             bot_state.account_workers[u] = task
 
     async def on_refresh_account_handler(uid):
@@ -2145,20 +2138,18 @@ async def main():
         print_warning(f"No accounts found in {ACCOUNTS_FILE}! Add accounts from Web Dashboard.")
         print_warning(f"Open: http://localhost:{WEB_PORT}")
 
-        for acc in accounts:
-            if "token" in acc and acc["token"]:
-                t = asyncio.create_task(account_loop_token(acc["token"]))
-                bot_state.account_workers[acc["token"][:10]] = t
-                await asyncio.sleep(4)
-            elif "uid" in acc and "password" in acc and acc["uid"]:
-                u = str(acc["uid"])
-                t = asyncio.create_task(account_loop_guest(u, acc["password"]))
-                bot_state.account_workers[u] = t
-                await asyncio.sleep(4)
+    for acc in accounts:
+        if "token" in acc and acc["token"]:
+            t = asyncio.create_task(account_loop_token(acc["token"]))
+            bot_state.account_workers[acc["token"][:10]] = t
+        elif "uid" in acc and "password" in acc and acc["uid"]:
+            u = str(acc["uid"])
+            t = asyncio.create_task(account_loop_guest(u, acc["password"]))
+            bot_state.account_workers[u] = t
 
+    try:
         while True:
             await asyncio.sleep(1)
-
     except (KeyboardInterrupt, asyncio.CancelledError):
         print_warning("\n[STOP] Shutting down all accounts...")
         for t in list(bot_state.account_workers.values()):
