@@ -2162,4 +2162,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print_warning("\nProgram stopped by user.")
+        print_warning("\nProgram stopped by user kontol.")
