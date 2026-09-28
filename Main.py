@@ -2146,15 +2146,19 @@ async def main():
         print_warning(f"Open: http://localhost:{WEB_PORT}")
 
         for acc in accounts:
-        if "token" in acc and acc["token"]:
-            t = asyncio.create_task(account_loop_token(acc["token"]))
-            bot_state.account_workers[acc["token"][:10]] = t
-            await asyncio.sleep(4)
-        elif "uid" in acc and "password" in acc and acc["uid"]:
-            u = str(acc["uid"])
-            t = asyncio.create_task(account_loop_guest(u, acc["password"]))
-            bot_state.account_workers[u] = t
-            await asyncio.sleep(4)
+            if "token" in acc and acc["token"]:
+                t = asyncio.create_task(account_loop_token(acc["token"]))
+                bot_state.account_workers[acc["token"][:10]] = t
+                await asyncio.sleep(4)
+            elif "uid" in acc and "password" in acc and acc["uid"]:
+                u = str(acc["uid"])
+                t = asyncio.create_task(account_loop_guest(u, acc["password"]))
+                bot_state.account_workers[u] = t
+                await asyncio.sleep(4)
+
+        while True:
+            await asyncio.sleep(1)
+
     except (KeyboardInterrupt, asyncio.CancelledError):
         print_warning("\n[STOP] Shutting down all accounts...")
         for t in list(bot_state.account_workers.values()):
