@@ -2118,12 +2118,19 @@ async def main():
     async def on_account_added_handler(data):
         if "token" in data and data["token"]:
             t = str(data["token"]).strip()
+            key = t[:10]
+            if key in bot_state.account_workers and not bot_state.account_workers[key].done():
+                return
             task = asyncio.create_task(account_loop_token(t))
-            bot_state.account_workers[t[:10]] = task
+            task.add_done_callback(lambda _: bot_state.account_workers.pop(key, None))
+            bot_state.account_workers[key] = task
         elif "uid" in data and "password" in data:
             u = str(data["uid"]).strip()
             p = str(data["password"]).strip()
+            if u in bot_state.account_workers and not bot_state.account_workers[u].done():
+                return
             task = asyncio.create_task(account_loop_guest(u, p))
+            task.add_done_callback(lambda _: bot_state.account_workers.pop(u, None))
             bot_state.account_workers[u] = task
 
     async def on_refresh_account_handler(uid):
