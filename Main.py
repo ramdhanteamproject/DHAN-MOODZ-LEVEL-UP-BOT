@@ -49,7 +49,7 @@ MATCH_IDLE_TIMEOUT = 25.0
 PRIORITY_REGIONS = ["BD","IND", "SG", "TH", "PH", "VN", "MY", "ID", "HK", "TW"]
 
 # 🔥 Cache invalidation thresholds
-MAX_CONSECUTIVE_PARSE_FAILURES = 5.0     
+MAX_CONSECUTIVE_PARSE_FAILURES = 15.0     
 NON_MATCH_RECONNECT_DELAY = 1.0       
 
 FALLBACK_UID = ""
@@ -2145,18 +2145,16 @@ async def main():
         print_warning(f"No accounts found in {ACCOUNTS_FILE}! Add accounts from Web Dashboard.")
         print_warning(f"Open: http://localhost:{WEB_PORT}")
 
-    for acc in accounts:
+        for acc in accounts:
         if "token" in acc and acc["token"]:
             t = asyncio.create_task(account_loop_token(acc["token"]))
             bot_state.account_workers[acc["token"][:10]] = t
+            await asyncio.sleep(4)
         elif "uid" in acc and "password" in acc and acc["uid"]:
             u = str(acc["uid"])
             t = asyncio.create_task(account_loop_guest(u, acc["password"]))
             bot_state.account_workers[u] = t
-
-    try:
-        while True:
-            await asyncio.sleep(1)
+            await asyncio.sleep(4)
     except (KeyboardInterrupt, asyncio.CancelledError):
         print_warning("\n[STOP] Shutting down all accounts...")
         for t in list(bot_state.account_workers.values()):
